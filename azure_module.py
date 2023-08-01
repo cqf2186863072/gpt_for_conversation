@@ -47,9 +47,9 @@ if __name__ == '__main__':
     config_file = os.path.join(file_dir, 'config.ini')
     if os.path.exists(config_file): 
         config.read(config_file) 
-        voice_name = config.get('config_Azure', 'voice_name')
+        voice_name = config.get('Azure_SpeechSynthesizer', 'voice_name_SpeechSynthesizer')
 
     synthesizer = SpeechSynthesizer(subscription, region, voice_name)
     print("Enter some text that you want to speak >")
     text = input()
-    synthesizer.speak_text(text)
+    synthesizer.text_to_speech(text)
