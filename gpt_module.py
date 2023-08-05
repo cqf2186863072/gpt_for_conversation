@@ -6,13 +6,13 @@ class GPTClient:
         self.header = header
 
     def send_message(self, message, temperature = 0.5):
-        #! Summary:
-        #   sends requests to openai
-        #* Args:
-        #   message: A dictionary list inclueding dialogue histohry and new input
-        #   temperature: Randomness of responses
-        #? Return:
-        #   response
+        '''sends requests to openai
+
+        Args:
+            message: A dictionary list inclueding dialogue histohry and new input
+            temperature: Randomness of responses
+
+        '''
         data = {
             'model_name': 'gpt-4-32k',
             'message': message,

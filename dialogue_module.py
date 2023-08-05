@@ -12,46 +12,38 @@ class OutputMode(Enum):
     SPEAK = 1
 
 class Message:
-    #! Summary:
-    #   This is a class that orgnize a message
-
+    '''This is a class that orgnize a message'''
     def __init__(self, role, content):
-        #! Summary:
-        #   This is the constructor of the class
-        #* Args:
-        #   role: A string that indicates the role of the message sender, such as 'system', 'user' and 'assistant'
-        #   content: A string that contains the message content
         self.role = role
         self.content = content
 
 
     def __dic__(self):
-        #! Summary:
-        #   This is a method that converts the message role and content into a dictionary
+        '''This is a method that converts the message role and content into a dictionary'''
         return {"role": f"{self.role}", "content": self.content}
 
-
 class DialogueManager:
-    #! Summary:
-    #   This is a class that manages the dialogue between the user and the system
-
     def __init__(self, gpt_client, synthesizer=None, recognizer=None):
-        #! Summary:
-        #   This is the constructor of the class
-        #* Args:
-        #   gpt_client: A GPTClient object that communicates with the GPT-4-32k API
-        #   synthesizer: A Synthesizer object that converts text to speech (optional)
-        #   recognizer: A Recognizer object that converts speech to text (optional)
+        '''This is the constructor of the class
+
+        Args:
+        gpt_client: A GPTClient object that communicates with the GPT-4-32k API
+        synthesizer: A Synthesizer object that converts text to speech (optional)
+        recognizer: A Recognizer object that converts speech to text (optional)
+        
+        '''
         self.gpt_client = gpt_client
         self.synthesizer = synthesizer
         self.recognizer = recognizer
         self.set_prompts()
         
 
-        #* 配置对话模式和指令词
+        # 配置对话模式和指令词
         #TODO 给指令一个特殊的格式
         self.InputMode = InputMode.KEYBOARD
         self.OutputMode = OutputMode.PRINT
+        self.multiline_words = ["多行", "multiline"]
+        self.multiline_pattern = "|".join([f"^({word})[。.]?\s*$" for word in self.multiline_words])
         self.switch_output_words = ["切换输出模式", "语音"]
         self.switch_output_pattern = "|".join([f"^({word})[。.]?\s*$" for word in self.switch_output_words])
         self.switch_input_words = ["切换输入模式", "切换", "switch", "change", "toggle"]
@@ -62,6 +54,22 @@ class DialogueManager:
     #TODO 配置对话历史的方法
     def set_prompts(self):
         self.dialogue_history = [{"role": "system", "content": ''}]
+
+    def get_multiline_input(self):
+        '''This is a method that gets multiple lines of input from the user
+
+        Return:
+            A string that contains the user input with newline characters
+    
+        '''    
+        print("请输入多行内容，以END结束")
+        lines = []
+        while True:
+            line = input()
+            if line == "END":
+                break
+            lines.append(line)
+        return "\n".join(lines)
     
     def output(self, text):
         if self.synthesizer and self.OutputMode == OutputMode.SPEAK:
@@ -91,8 +99,6 @@ class DialogueManager:
             print("已切换到文本输出模式，请输入")
 
     def run(self):
-        #! Summary:
-        #   Runs the dialogue loop
         self.exit_flag = False
         while not self.exit_flag:
             try:
@@ -102,6 +108,9 @@ class DialogueManager:
                     print(user_input)
                 else:
                     user_input = input("User: ")
+
+                if re.match(self.multiline_pattern, user_input):
+                    user_input = self.get_multiline_input()
                 if re.match(self.switch_output_pattern, user_input):
                     self.switch_OutputMode()
                     continue
@@ -111,20 +120,21 @@ class DialogueManager:
                 if re.match(self.exit_pattern, user_input):
                     self.exit_flag = True
                     break
+
                 user_message = Message("user", user_input)
                 self.dialogue_history.append(user_message.__dic__())
                 text = self.gpt_client.send_message(self.dialogue_history)
                 self.output(text)
                 system_message = Message("system", text)
                 self.dialogue_history.append(system_message.__dic__())
+
             except Exception as e:
                 print(f"Error: {e}")
                 break
         print('感谢您使用本程序，再见！')
 
+
 if __name__ == '__main__':
-    #! Summary:
-    #   This is the main function that creates a GPTClient object and a DialogueManager object and runs the dialogue
     url = "https://gpt-4-32k-api.com/" # replace with your own url
     header = {"Authorization": "Bearer xxx"} # replace with your own header
     gpt_client = GPTClient(url, header)
