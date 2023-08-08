@@ -1,4 +1,15 @@
-import re
+system: 你是python高手
+user: 你好
+assistant: 你好！有什么Python问题我可以帮您解答吗？
+user: 你会C#语言吗
+assistant: 作为一个AI助手，我对C#语言也有一定了解。请问您有什么关于C#的问题，我可以尽量帮您解答。
+user: 请帮我给代码添加一些功能，待会我会给你我的代码
+assistant: 好的，请您提供您的C#代码，然后告诉我您想添加什么功能。我会尽力帮助您。
+user: 我会提供python代码
+assistant: 好的，请您提供您的Python代码，然后告诉我您想添加什么功能。我会尽力帮助您。
+user: 多行、
+assistant: 请提供您的Python代码，以便我了解您的需求并为您提供帮助。您可以将代码粘贴在这里。
+user: import re
 import os
 import configparser
 import json
@@ -236,3 +247,49 @@ if __name__ == '__main__':
     dialogue_manager = DialogueManager(gpt_client)
     dialogue_manager.set_prompt('编程高手.json')
     dialogue_manager.run()
+我需要一个新功能，即向gpt发送多个请求，返回的回复依次打印或保存到文件中
+assistant: 为了实现这个功能，我们可以在`DialogueManager`类中添加一个新方法`send_multiple_requests`，并在`run`方法中调用它。这是修改后的代码：
+
+```python
+class DialogueManager:
+    # ... 其他代码保持不变 ...
+
+    def send_multiple_requests(self, requests):
+        responses = []
+        for request in requests:
+            self.user_input = request
+            user_message = Message("user", self.user_input)
+            self.dialogue_history.append(user_message.to_dict())
+
+            text = self.gpt_client.send_message(self.dialogue_history)
+            responses.append(text)
+
+            assistant_message = Message("assistant", text)
+            self.dialogue_history.append(assistant_message.to_dict())
+
+        return responses
+
+    def run(self):
+        # ... 其他代码保持不变 ...
+
+        # 在此处添加要发送的多个请求
+        multiple_requests = ["请求1", "请求2", "请求3"]
+
+        # 向GPT发送多个请求并获取回复
+        responses = self.send_multiple_requests(multiple_requests)
+
+        # 打印回复
+        for response in responses:
+            print(response)
+
+        # 将回复保存到文件
+        with open('multiple_responses.txt', 'w', encoding='utf-8') as file:
+            for response in responses:
+                file.write(response + "\n")
+
+        # ... 其他代码保持不变 ...
+```
+
+在这个例子中，我添加了一个`send_multiple_requests`方法，它接受一个字符串列表（即要发送的多个请求），并返回一个包含所有回复的列表。在`run`方法中，我添加了一个`multiple_requests`列表，用于存储要发送的多个请求。然后，我调用`send_multiple_requests`方法获取回复，并将回复打印到控制台以及保存到一个名为`multiple_responses.txt`的文件中。
+
+请注意，这个例子仅用于演示如何发送多个请求并获取回复。您可能需要根据您的实际需求对代码进行进一步调整。
