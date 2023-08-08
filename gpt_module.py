@@ -5,11 +5,11 @@ class GPTClient:
         self.url = url
         self.header = header
 
-    def send_message(self, message, temperature = 0.5):
+    def send_request(self, message, temperature = 0.5):
         '''sends requests to openai
 
         Args:
-            message: A dictionary list inclueding dialogue histohry and new input
+            message: A dictionary list including dialogue history and new input
             temperature: Randomness of responses
 
         '''
@@ -27,5 +27,3 @@ class GPTClient:
                 raise Exception(f"Request failed with status code {response.status_code}")
         except requests.exceptions.RequestException as e:
             raise Exception(f"Request exception: {e}")
-
-        

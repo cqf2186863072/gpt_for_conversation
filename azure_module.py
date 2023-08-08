@@ -116,7 +116,7 @@ if __name__ == '__main__':
     selector = LanguageAndVoiceSelector(timeout=3)
     language, voice = selector.choose_language_and_voice()
 
-    # Test for synthesizer 
+    # Test for synthesizer
     synthesizer = SpeechSynthesizer(language, voice) 
     text = "This is a test.衬衫的价格是9磅15便士。"
     synthesizer.text_to_speech_speaker(text)

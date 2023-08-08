@@ -1,3 +1,10 @@
+system: 你是python高手
+user: 你好
+assistant: 你好！有什么Python问题我可以帮您解答吗？
+user: 你会C#语言吗
+assistant: 作为一个AI助手，我对C#语言也有一定了解。请问您有什么关于C#的问题，我可以尽量帮您解答。
+user: 下面是我的代码
+```
 import re
 import os
 import configparser
@@ -65,9 +72,8 @@ class DialogueManager:
         self.CheckResult = None
 
         if re.match(self.set_prompt_pattern, self.user_input):
-            prompt_text = input("请输入prompt(system's content)（不需要就Enter）：")
-            prompt_file = input("请输入对话记录文件名（不需要就Enter）：")
-            self.set_prompt(prompt_text=prompt_text, prompt_file=prompt_file)
+            file_name = input("请输入对话记录文件名：")
+            self.set_prompt(file_name)
             self.CheckResult = CheckResult.CONTINUE
         if re.match(self.save_dialogue_pattern, self.user_input):
             self.save_dialogue()
@@ -87,32 +93,24 @@ class DialogueManager:
             self.exit_flag = True
             self.CheckResult = CheckResult.BREAK
 
-    def set_prompt(self, prompt_text=None, prompt_file=None):
-        '''用来设置prompt的方法
-
-        Args:
-            prompt_text: 文本形式的prompt
-            prompt_file: 文件形式的prompt
+    def set_prompt(self, file_name=None):
+        '''Method to set prompt and send dialogue history
 
         '''
-        if prompt_file:
+        if file_name:
             try:
-                file_name = os.path.join('saved_dialogue_history', prompt_file + '.json')
+                file_name = os.path.join('saved_dialogue_history', file_name + '.json')
                 if os.path.exists(file_name):
                     # with open(file_name, 'r', encoding='utf-8') as file:
                     with open(file_name, 'r') as file:
                         self.dialogue_history = json.load(file)
-                    print(f"'{file_name}'初始化成功")
+                    print("prompt初始化成功")
                 else:
                     raise Exception(f'未找到文件{file_name}')
             except Exception as e:
                 print(e)
-        elif prompt_text:
-            self.dialogue_history = [{"role": "system", "content": f'{prompt_text}'}]
-            print(f"'{prompt_text}'初始化成功")
         else:
             self.dialogue_history = [{"role": "system", "content": ''}]
-            print("未设置prompt")
 
     def save_dialogue(self):
         file_name = input("请输入要保存的文件名：")
@@ -226,7 +224,7 @@ class DialogueManager:
         print('感谢您使用本程序，再见！')
 
 if __name__ == '__main__':
-    # 读取config.ini配置gpt
+    # 用配置文件配置gpt
     config = configparser.ConfigParser()
     file_dir = os.path.dirname(__file__)
     config_file = os.path.join(file_dir, 'config.ini')
@@ -248,4 +246,131 @@ if __name__ == '__main__':
 
     # 运行对话系统
     dialogue_manager = DialogueManager(gpt_client)
+    dialogue_manager.set_prompt('编程高手')
     dialogue_manager.run()
+```
+我想知道我是否可以把其中通过关键词触发的几个方法放到某个类里，使代码更清晰明了
+assistant: 是的，您可以将这些通过关键词触发的方法放到一个单独的类中，这将使代码更加模块化和清晰。我建议创建一个名为`KeywordManager`的新类，将与关键词相关的方法和属性移至该类中。这是一个示例：
+
+```python
+class KeywordManager:
+    def __init__(self):
+        self.init_keywords()
+
+    def init_keywords(self):
+        self.set_prompt_words = ["设置", "set"]
+        self.set_prompt_pattern = self.build_pattern(self.set_prompt_words)
+
+        self.save_dialogue_words = ["保存", "save"]
+        self.save_dialogue_pattern = self.build_pattern(self.save_dialogue_words)
+
+        self.switch_OutputMode_words = ["切换输出模式", "语音"]
+        self.switch_OutputMode_pattern = self.build_pattern(self.switch_OutputMode_words)
+
+        self.switch_InputMode_words = ["切换输入模式", "切换", "switch", "change", "toggle"]
+        self.switch_InputMode_pattern = self.build_pattern(self.switch_InputMode_words)
+
+        self.multiline_words = ["多行", "multiline"]
+        self.multiline_pattern = self.build_pattern(self.multiline_words)
+
+        self.exit_words = ["退出", "结束", "停止", "exit", "end", "quit"]
+        self.exit_pattern = self.build_pattern(self.exit_words)
+
+    def build_pattern(self, words):
+        return "|".join([f"^({word})[。.]?\s*$" for word in words])
+```
+
+然后，在`DialogueManager`类中，您可以创建一个`KeywordManager`实例，并在`check_key_words`方法中使用它。这是一个示例：
+
+```python
+class DialogueManager:
+    def __init__(self, gpt_client, synthesizer=None, recognizer=None):
+        self.gpt_client = gpt_client
+        self.synthesizer = synthesizer
+        self.recognizer = recognizer
+        self.keyword_manager = KeywordManager()  # 创建 KeywordManager 实例
+        # ... 其他初始化代码 ...
+
+    def check_key_words(self):
+        self.CheckResult = None
+
+        if re.match(self.keyword_manager.set_prompt_pattern, self.user_input):
+            # ... 处理设置提示 ...
+        # ... 其他关键词检查 ...
+```
+
+这样，您就将关键词相关的逻辑与`DialogueManager`类分离，使代码更加清晰和模块化。
+user: 类中可以嵌套类吗
+assistant: 是的，Python允许在类中嵌套类。一个类可以作为另一个类的内部类。这里有一个简单的例子：
+
+```python
+class OuterClass:
+    class InnerClass:
+        def inner_method(self):
+            print("This is an inner class method.")
+
+    def outer_method(self):
+        print("This is an outer class method.")
+        inner_instance = self.InnerClass()
+        inner_instance.inner_method()
+
+# 使用内部类和外部类
+outer_instance = OuterClass()
+outer_instance.outer_method()
+
+inner_instance = OuterClass.InnerClass()
+inner_instance.inner_method()
+```
+
+在这个例子中，我们定义了一个名为`OuterClass`的外部类，它包含一个名为`InnerClass`的内部类。我们可以在外部类的方法中创建内部类的实例，也可以在外部类之外创建内部类的实例。
+
+需要注意的是，内部类通常用于实现外部类的某些特定功能，而这些功能与外部类的其他部分关系不大。在某些情况下，使用内部类可以使代码更加整洁和模块化。然而，在许多情况下，将类保持在同一层次结构中可能更容易理解和维护。在您的代码示例中，将`KeywordManager`作为`DialogueManager`的内部类是可以的，但将它们保持在同一层次结构中可能更容易理解。
+user: 那请你把init_keywords/check_keywords/set_prompt/save_dialogue/两个switch/get_multiline_input这些方法放到一个叫SettingsManager的内部类（在DialogueManager内）中
+assistant: 以下是根据您的要求修改后的`DialogueManager`类，其中包含一个名为`SettingsManager`的内部类。这个内部类包括了`init_keywords`、`check_keywords`、`set_prompt`、`save_dialogue`、两个`switch`方法以及`get_multiline_input`方法。
+
+```python
+class DialogueManager:
+    class SettingsManager:
+        def __init__(self, outer_instance):
+            self.outer_instance = outer_instance
+            self.init_keywords()
+
+        def init_keywords(self):
+            # ... 初始化关键词代码 ...
+
+        def check_keywords(self, user_input):
+            # ... 检查关键词代码 ...
+
+        def set_prompt(self, file_name=None):
+            # ... 设置提示代码 ...
+
+        def save_dialogue(self):
+            # ... 保存对话代码 ...
+
+        def switch_OutputMode(self):
+            # ... 切换输出模式代码 ...
+
+        def switch_InputMode(self):
+            # ... 切换输入模式代码 ...
+
+        def get_multiline_input(self):
+            # ... 获取多行输入代码 ...
+
+        def build_pattern(self, words):
+            # ... 构建模式代码 ...
+
+    def __init__(self, gpt_client, synthesizer=None, recognizer=None):
+        self.gpt_client = gpt_client
+        self.synthesizer = synthesizer
+        self.recognizer = recognizer
+        self.settings_manager = self.SettingsManager(self)  # 创建 SettingsManager 实例
+        # ... 其他初始化代码 ...
+
+    def run(self):
+        # ... 对话管理器运行代码 ...
+        # 使用 self.settings_manager.check_keywords(self.user_input) 替换原来的 self.check_key_words() 调用
+```
+
+请注意，为了让`SettingsManager`类能够访问`DialogueManager`类的实例，我们将`DialogueManager`的实例作为参数传递给`SettingsManager`的构造函数。当您需要在`SettingsManager`的方法中访问`DialogueManager`的属性或方法时，可以使用`self.outer_instance`。
+
+现在，您可以使用`self.settings_manager.check_keywords(self.user_input)`替换原来的`self.check_key_words()`调用。同样，您可以使用`self.settings_manager`调用其他方法，例如`set_prompt`、`save_dialogue`等。
