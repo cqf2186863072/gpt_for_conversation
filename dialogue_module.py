@@ -4,9 +4,12 @@ import configparser
 import json
 import threading
 import time
+import azure_module
 from datetime import datetime
 from enum import Enum
 from gpt_module import GPTClient
+
+
 
 class InputMode(Enum):
     KEYBOARD = 0
@@ -177,7 +180,7 @@ class DialogueManager:
 
     def output(self, text):
         if self.synthesizer and self.OutputMode == OutputMode.SPEAK:
-            self.synthesizer.text_to_speech_speaker_async(text)
+            self.synthesizer.text_to_speech_speaker(text)
         print(f"assistant: {text}")
 
     def send_and_receive(self):
@@ -226,25 +229,16 @@ class DialogueManager:
         print('感谢您使用本程序，再见！')
 
 if __name__ == '__main__':
-    # 读取config.ini配置gpt
-    config = configparser.ConfigParser()
-    file_dir = os.path.dirname(__file__)
-    config_file = os.path.join(file_dir, 'config.ini')
-    try:
-        if os.path.exists(config_file): 
-            config.read(config_file)
-            url = config.get('gpt', 'url')
-            header = eval(config.get('gpt', 'header'))
-        else:
-            raise Exception("请配置config.ini")
-    except Exception as e:
-        print(e)
-    gpt_client = GPTClient(url, header)
+    gpt_client = GPTClient()
 
-    # 手动配置gpt
-    # url = "https://gpt-4-32k-api.com/" # replace with your own url
-    # header = {"Authorization": "Bearer xxx"} # replace with your own header
-    # gpt_client = GPTClient(url, header)
+    # # 配置azure
+    # selector = azure_module.LanguageAndVoiceSelector(timeout=3)
+    # language, voice = selector.choose_language_and_voice()
+    # speech_synthesizer = azure_module.SpeechSynthesizer(language, voice)
+    # speech_recognizer = azure_module.SpeechRecognizer(language)
+
+    # 带有语音系统的对话助手
+    # dialogue_manager = DialogueManager(gpt_client, speech_synthesizer, speech_recognizer)
 
     # 运行对话系统
     dialogue_manager = DialogueManager(gpt_client)

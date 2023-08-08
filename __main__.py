@@ -6,20 +6,10 @@ import multiprocessing
 import csv
 import json
 import os
-import configparser
 from gpt_module import GPTClient
 
 # 全局配置
-config = configparser.ConfigParser()
-file_dir = os.path.dirname(__file__)
-config_file = os.path.join(file_dir, 'config.ini')
-if os.path.exists(config_file): 
-    config.read(config_file)
-    url = config.get('gpt', 'url')
-    header = eval(config.get('gpt', 'header'))
-else:
-    print("请配置config.ini")
-gpt_client = GPTClient(url, header)
+gpt_client = GPTClient()
 prompt_filename = "小说家"
 
 def process_row(row):
@@ -29,7 +19,6 @@ def process_row(row):
         dialogue_history = json.load(file)
     dialogue_history.append({"role": "user", "content": f'{keywords}'})
     response = gpt_client.send_request(dialogue_history)
-    # 返回更新后的行数据
     return row[0], keywords, response
 
 def generate_in_batches(message_filename): 
