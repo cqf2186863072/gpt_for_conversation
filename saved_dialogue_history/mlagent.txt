@@ -1,0 +1,160 @@
+system: 
+user: 你好
+assistant: 你好！有什么我可以帮助您的吗？
+user: 现在我有一个mlagent测试项目，游戏场景中有一个UI，UI上会显示一个数字，游戏规则是，玩家猜一个数，系统告知这个数比UI显示的数大或是小，然后玩家不断地猜，直到猜中那个数为止，我希望训练一个agent，使得它可以快速地猜出这个数。现在我已经有一个脚本挂载在游戏对象上了，如下：
+using TMPro;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using System;
+
+public class NumberController : MonoBehaviour
+{
+    public GameObject number;
+    public TextMeshProUGUI tmp;
+    private int randomNumber;
+
+    private void Start()
+    {
+        // number = GameObject.Find('Number');
+        tmp = number.GetComponent<TextMeshProUGUI> ();
+        randomNumber = UnityEngine.Random.Range(0, 51);
+        tmp.text = randomNumber.ToString();
+    }
+
+    private void Update()
+    {
+        
+    }
+}
+我希望你帮我完善上面的脚本，并且完成下面的脚本（挂载在agent上的脚本）：
+using UnityEngine;
+using Unity.MLAgents;
+using Unity.MLAgents.Actuators;
+using Unity.MLAgents.Sensors;
+
+public class TestAgent : Agent
+{
+    
+}
+assistant: 我可以帮你完善这两个脚本。首先，我们在`NumberController`脚本中添加一个方法来判断玩家猜测的数字是否正确，并返回结果。然后，我们在`TestAgent`脚本中添加所需的方法来训练代理。
+
+修改后的`NumberController`脚本：
+
+```csharp
+using TMPro;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using System;
+
+public class NumberController : MonoBehaviour
+{
+    public GameObject number;
+    public TextMeshProUGUI tmp;
+    private int randomNumber;
+
+    private void Start()
+    {
+        tmp = number.GetComponent<TextMeshProUGUI> ();
+        randomNumber = UnityEngine.Random.Range(0, 51);
+        tmp.text = randomNumber.ToString();
+    }
+
+    private void Update()
+    {
+
+    }
+
+    public int CheckGuess(int guess)
+    {
+        if (guess == randomNumber)
+        {
+            return 0; // 猜测正确
+        }
+        else if (guess < randomNumber)
+        {
+            return -1; // 猜测的数字小于目标数字
+        }
+        else
+        {
+            return 1; // 猜测的数字大于目标数字
+        }
+    }
+}
+```
+
+`TestAgent`脚本：
+
+```csharp
+using UnityEngine;
+using Unity.MLAgents;
+using Unity.MLAgents.Actuators;
+using Unity.MLAgents.Sensors;
+
+public class TestAgent : Agent
+{
+    public NumberController numberController;
+    private int guess;
+
+    public override void Initialize()
+    {
+        numberController = GameObject.FindObjectOfType<NumberController>();
+    }
+
+    public override void OnEpisodeBegin()
+    {
+        guess = 0;
+    }
+
+    public override void CollectObservations(VectorSensor sensor)
+    {
+        sensor.AddObservation(guess);
+    }
+
+    public override void OnActionReceived(ActionBuffers actions)
+    {
+        int action = actions.DiscreteActions[0];
+
+        if (action == 0)
+        {
+            guess++;
+        }
+        else if (action == 1)
+        {
+            guess--;
+        }
+
+        int result = numberController.CheckGuess(guess);
+
+        if (result == 0)
+        {
+            SetReward(1.0f);
+            EndEpisode();
+        }
+        else
+        {
+            SetReward(-0.01f);
+        }
+    }
+
+    public override void Heuristic(in ActionBuffers actionsOut)
+    {
+        var discreteActionsOut = actionsOut.DiscreteActions;
+        discreteActionsOut[0] = 0;
+
+        if (Input.GetKey(KeyCode.UpArrow))
+        {
+            discreteActionsOut[0] = 0;
+        }
+        else if (Input.GetKey(KeyCode.DownArrow))
+        {
+            discreteActionsOut[0] = 1;
+        }
+    }
+}
+```
+
+现在，`TestAgent`脚本已经可以与`NumberController`脚本进行交互。代理会根据其猜测结果调整其猜测，并在猜对数字时获得奖励。在训练过程中，代理会学会如何快速猜出正确的数字。

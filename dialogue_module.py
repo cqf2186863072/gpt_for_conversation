@@ -182,6 +182,7 @@ class DialogueManager:
         if self.synthesizer and self.OutputMode == OutputMode.SPEAK:
             self.synthesizer.text_to_speech_speaker(text)
         print(f"assistant: {text}")
+        print("\n----------")
 
     def send_and_receive(self):
         text = self.gpt_client.send_request(self.dialogue_history)
@@ -213,6 +214,7 @@ class DialogueManager:
                 # 将用户输入加入对话历史
                 user_message = Message("user", self.user_input)
                 self.dialogue_history.append(user_message.to_dict())
+                print("\n----------")
                 
                 # 启动并等待线程结束
                 self.loading_flag = True
@@ -231,15 +233,15 @@ class DialogueManager:
 if __name__ == '__main__':
     gpt_client = GPTClient()
 
-    # # 配置azure
-    # selector = azure_module.LanguageAndVoiceSelector(timeout=3)
-    # language, voice = selector.choose_language_and_voice()
-    # speech_synthesizer = azure_module.SpeechSynthesizer(language, voice)
-    # speech_recognizer = azure_module.SpeechRecognizer(language)
+    # 配置azure
+    selector = azure_module.LanguageAndVoiceSelector(timeout=3)
+    language, voice = selector.choose_language_and_voice()
+    speech_synthesizer = azure_module.SpeechSynthesizer(language, voice)
+    speech_recognizer = azure_module.SpeechRecognizer(language)
 
     # 带有语音系统的对话助手
-    # dialogue_manager = DialogueManager(gpt_client, speech_synthesizer, speech_recognizer)
+    dialogue_manager = DialogueManager(gpt_client, speech_synthesizer, speech_recognizer)
 
     # 运行对话系统
-    dialogue_manager = DialogueManager(gpt_client)
+    # dialogue_manager = DialogueManager(gpt_client)
     dialogue_manager.run()

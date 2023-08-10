@@ -116,16 +116,22 @@ if __name__ == '__main__':
     selector = LanguageAndVoiceSelector(timeout=3)
     language, voice = selector.choose_language_and_voice()
 
-    # Test for synthesizer
+    # 测试合成到麦克风功能
     synthesizer = SpeechSynthesizer(language, voice) 
-    text = "This is a test.衬衫的价格是9磅15便士。"
+    text = "场景：一个中国女孩和一个美国男孩在上海相遇，他们相互喜欢，但是因为语言和文化的差异，他们之间有很多误会和冲突。女孩：你知道吗？我一直很喜欢你，但是你总是让我觉得你不在乎我，你不了解我，你不尊重我的文化。你为什么总是说些让我难过的话呢？男孩：I’m sorry, I didn’t mean to hurt you. I really like you too, but I don’t know how to express myself in your language. I’m trying to learn more about you and your culture, but sometimes I make mistakes. Please don’t be mad at me.女孩：那你为什么不多花点时间和我沟通呢？你为什么总是忙着工作，忙着玩，忙着跟别的女孩子聊天呢？男孩：That’s not true, I only have eyes for you. I work hard because I want to give you a better life. I play games because I want to relax with you. I talk to other girls because I want to make friends with them. You are the only one in my heart.女孩：真的吗？你不是在骗我吗？男孩：Of course it’s true. Trust me, I love you. 我爱你。"
     synthesizer.text_to_speech_speaker(text)
-    input("Press any key to continue...")
-    print("Please say something to test recognizer...")
-    recognizer = SpeechRecognizer(language)
-    print(recognizer.speech_to_text_microphone())
 
-    # Test for recognizer
+    # 测试合成到文件功能
+    # filename = input("请输入要保存的文件名（无后缀）：")
+    # filename = f"./tts_outputs/{filename}.wav"
+    # synthesizer.text_to_speech_file(text, filename)
+
+    # 测试识别功能
+    # print("Please say something to test recognizer...")
+    # recognizer = SpeechRecognizer(language)
+    # print(recognizer.speech_to_text_microphone())
+
+    # 测试批量合成到文件功能
     # with open("text_list.csv", "r", encoding="utf-8") as f:
     #     reader = csv.reader(f)
     #     rows = list(reader)
