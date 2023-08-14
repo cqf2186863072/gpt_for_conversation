@@ -1,3 +1,6 @@
+system: 你是编程高手
+user: 请记住下面的代码
+```python
 import re
 import os
 import configparser
@@ -254,3 +257,161 @@ if __name__ == '__main__':
     # 运行对话系统
     dialogue_manager = DialogueManager(gpt_client)
     dialogue_manager.run()
+```
+
+assistant: 已经记住了这段代码。这是一个使用Python编写的对话管理器，它可以与GPT-3模型进行交互并支持文本和语音输入输出。代码中包含了一些关键的类和方法，如DialogueManager、Message、set_prompt等。如果您有关于这段代码的任何问题，请随时询问。
+user: 再记住这段代码
+```
+from gpt_module import GPTClient
+from dialogue_module import Message
+from dialogue_module import DialogueManager
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTextEdit, QLineEdit, QPushButton, QVBoxLayout, QWidget, QFileDialog, QLabel, QHBoxLayout, QRadioButton, QInputDialog, QSizePolicy, QPlainTextEdit, QSplitter
+from PyQt5.QtCore import Qt, QThreadPool, QRunnable, pyqtSlot
+import traceback
+import sys
+
+class GPTWorker(QRunnable):
+    def __init__(self, dialogue_manager, user_message):
+        super(GPTWorker, self).__init__()
+        self.dialogue_manager = dialogue_manager
+        self.user_message = user_message
+
+    @pyqtSlot()
+    def run(self):
+        try:
+            # 将用户输入加入对话历史
+            user_message_obj = Message("user", self.user_message)
+            self.dialogue_manager.dialogue_history.append(user_message_obj.to_dict())
+
+            # 获取AI助手的回复
+            assistant_message = self.dialogue_manager.gpt_client.send_request(self.dialogue_manager.dialogue_history)
+            assistant_message_obj = Message("assistant", assistant_message)
+            self.dialogue_manager.dialogue_history.append(assistant_message_obj.to_dict())
+
+            self.dialogue_manager.parent.receive_message(assistant_message)
+
+        except Exception as e:
+            print("Error in GPTWorker:", e)
+            traceback.print_exc()
+
+class App(QMainWindow):
+    def __init__(self, dialogue_manager):
+        super().__init__()
+        self.dialogue_manager = dialogue_manager
+        self.dialogue_manager.parent = self
+        self.init_ui()
+
+    def init_ui(self):
+        self.setWindowTitle("AI助手")
+
+        # 创建一个垂直布局
+        layout = QVBoxLayout()
+
+        # 创建一个分隔条
+        splitter = QSplitter(Qt.Vertical)
+        
+
+        # 创建一个文本编辑器来显示对话历史
+        self.conversation_history = QTextEdit()
+        self.conversation_history.setReadOnly(True)
+        # layout.addWidget(self.conversation_history, stretch=3)
+        splitter.addWidget(self.conversation_history)
+
+        # 创建一个输入框供用户输入文本
+        self.user_input = QPlainTextEdit()
+        # self.user_input.setFixedHeight(100)
+        # layout.addWidget(self.user_input)
+        splitter.addWidget(self.user_input)
+
+        layout.addWidget(splitter)
+
+        # 创建一个发送按钮来触发消息发送
+        self.send_button = QPushButton("发送")
+        self.send_button.clicked.connect(self.send_message)
+        layout.addWidget(self.send_button)
+
+        # 创建功能按钮
+        self.init_feature_buttons(layout)
+
+        # 设置窗口的布局
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+
+    def init_feature_buttons(self, layout):
+        # 创建一个水平布局
+        hbox = QHBoxLayout()
+
+        # 创建设置Prompt按钮
+        self.set_prompt_button = QPushButton("设置Prompt")
+        self.set_prompt_button.clicked.connect(self.set_prompt)
+        hbox.addWidget(self.set_prompt_button)
+
+        # 创建保存对话按钮
+        self.save_dialogue_button = QPushButton("保存对话")
+        self.save_dialogue_button.clicked.connect(self.save_dialogue)
+        hbox.addWidget(self.save_dialogue_button)
+
+        # # 创建切换输入模式按钮
+        # switch_input_mode_button = QPushButton("切换输入模式")
+        # switch_input_mode_button.clicked.connect(self.switch_input_mode)
+        # hbox.addWidget(switch_input_mode_button)
+
+        # # 创建切换输出模式按钮
+        # switch_output_mode_button = QPushButton("切换输出模式")
+        # switch_output_mode_button.clicked.connect(self.switch_output_mode)
+        # hbox.addWidget(switch_output_mode_button)
+
+        layout.addLayout(hbox)
+
+    def send_message(self):
+        user_message = self.user_input.toPlainText()
+        if not user_message:
+            return
+
+        self.conversation_history.append(f"User: {user_message}")
+        self.user_input.clear()
+
+        # 禁用发送和设置Prompt按钮
+        self.send_button.setEnabled(False)
+        self.set_prompt_button.setEnabled(False)
+
+        # 创建GPTWorker并将其添加到线程池
+        gpt_worker = GPTWorker(self.dialogue_manager, user_message)
+        QThreadPool.globalInstance().start(gpt_worker)
+
+    @pyqtSlot(str)
+    def receive_message(self, assistant_message):
+        # GPT请求完成后更新UI
+        self.conversation_history.append(f"Assistant: {assistant_message}")
+        self.send_button.setEnabled(True)
+        self.set_prompt_button.setEnabled(True)
+
+    def set_prompt(self):
+        prompt_text, ok = QInputDialog.getText(self, "设置Prompt", "请输入prompt(system's content)（不需要就Enter）：")
+        if ok:
+            self.dialogue_manager.set_prompt(prompt_text=prompt_text)
+
+    def save_dialogue(self):
+        file_name, ok = QInputDialog.getText(self, "保存对话", "请输入要保存的文件名：")
+        if ok and file_name:
+            self.dialogue_manager.save_dialogue(file_name)
+        elif ok:
+            self.dialogue_manager.save_dialogue()
+
+    def switch_input_mode(self):
+        self.dialogue_manager.switch_InputMode()
+
+    def switch_output_mode(self):
+        self.dialogue_manager.switch_OutputMode()
+
+if __name__ == "__main__":
+    gpt_client = GPTClient()
+    dialogue_manager = DialogueManager(gpt_client)
+
+    app = QApplication(sys.argv)
+    main_window = App(dialogue_manager)
+    main_window.show()
+    sys.exit(app.exec_())
+```
+assistant: 已经记住了这段代码。这是一个使用Python和PyQt5编写的图形用户界面(GUI)应用程序，它与之前提供的对话管理器一起工作。代码中包含了一些关键的类和方法，如GPTWorker、App等。这个GUI应用程序包括一个文本编辑器用于显示对话历史，一个输入框供用户输入文本，以及一些功能按钮，如设置Prompt、保存对话等。如果您有关于这段代码的任何问题，请随时询问。

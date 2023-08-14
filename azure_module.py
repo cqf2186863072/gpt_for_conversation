@@ -107,8 +107,9 @@ class LanguageAndVoiceSelector:
                 break
             elif time.time() - start_time > self.timeout:
                 print("No input from user.")
-                language = "ja-JP"
-                voice = "ja-JP-NaokiNeural"
+                # 比较合适的有34/20
+                language = "en-US"
+                voice = "en-US-TonyNeural"
                 return (language, voice)
 
 if __name__ == '__main__':
@@ -118,13 +119,15 @@ if __name__ == '__main__':
 
     # 测试合成到麦克风功能
     synthesizer = SpeechSynthesizer(language, voice) 
+    # text = "这是一段测试。我是一个成熟的男人但你是个小赤佬。"
+    # text = "This is a test. I'm a mature man and you are a silly boy."
     text = "场景：一个中国女孩和一个美国男孩在上海相遇，他们相互喜欢，但是因为语言和文化的差异，他们之间有很多误会和冲突。女孩：你知道吗？我一直很喜欢你，但是你总是让我觉得你不在乎我，你不了解我，你不尊重我的文化。你为什么总是说些让我难过的话呢？男孩：I’m sorry, I didn’t mean to hurt you. I really like you too, but I don’t know how to express myself in your language. I’m trying to learn more about you and your culture, but sometimes I make mistakes. Please don’t be mad at me.女孩：那你为什么不多花点时间和我沟通呢？你为什么总是忙着工作，忙着玩，忙着跟别的女孩子聊天呢？男孩：That’s not true, I only have eyes for you. I work hard because I want to give you a better life. I play games because I want to relax with you. I talk to other girls because I want to make friends with them. You are the only one in my heart.女孩：真的吗？你不是在骗我吗？男孩：Of course it’s true. Trust me, I love you. 我爱你。"
-    synthesizer.text_to_speech_speaker(text)
+    # synthesizer.text_to_speech_speaker(text)
 
     # 测试合成到文件功能
-    # filename = input("请输入要保存的文件名（无后缀）：")
-    # filename = f"./tts_outputs/{filename}.wav"
-    # synthesizer.text_to_speech_file(text, filename)
+    filename = input("请输入要保存的文件名（无后缀）：")
+    filename = f"./tts_outputs/{filename}.wav"
+    synthesizer.text_to_speech_file(text, filename)
 
     # 测试识别功能
     # print("Please say something to test recognizer...")
