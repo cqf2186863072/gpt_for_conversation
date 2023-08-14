@@ -41,7 +41,7 @@ class App(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
-        self.setWindowTitle("AI助手")
+        self.setWindowTitle("GUI")
 
         # 创建一个垂直布局
         layout = QVBoxLayout()
