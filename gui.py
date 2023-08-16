@@ -4,6 +4,7 @@ from dialogue_module import DialogueManager
 from batches_module import BatchRequestProcessor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTextEdit, QPushButton, QVBoxLayout, QWidget, QFileDialog, QHBoxLayout, QInputDialog, QPlainTextEdit, QSplitter, QDialog, QLabel, QLineEdit, QComboBox
 from PyQt5.QtCore import Qt, QThreadPool, QRunnable, pyqtSlot, QThread, pyqtSignal
+from PyQt5.QtGui import QFont
 import traceback
 import sys
 import os
@@ -48,6 +49,17 @@ class GPTBatchWorker(QThread):
         finally:
             self.finished.emit()
 
+class CustomPlainTextEdit(QPlainTextEdit):
+    def __init__(self, app, parent=None):
+        super(CustomPlainTextEdit, self).__init__(parent)
+        self.app = app
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Return and event.modifiers() & Qt.ShiftModifier:
+            self.app.send_message()
+        else:
+            super().keyPressEvent(event)
+
 class App(QMainWindow):
     def __init__(self, dialogue_manager):
         # QMetaType.registerMetaType(QTextCursor, "QTextCursor")
@@ -66,20 +78,24 @@ class App(QMainWindow):
         # 创建一个分隔条
         splitter = QSplitter(Qt.Vertical)
         
+        # 设置字体和大小
+        font = QFont("Cascadia Code", 11)
 
         # 创建一个文本编辑器来显示对话历史
         self.conversation_history = QTextEdit()
+        self.conversation_history.setFont(font)  # 设置字体
         self.conversation_history.setReadOnly(True)
         splitter.addWidget(self.conversation_history)
 
         # 创建一个输入框供用户输入文本
-        self.user_input = QPlainTextEdit()
+        self.user_input = CustomPlainTextEdit(self, self)
+        self.user_input.setFont(font)  # 设置字体
         splitter.addWidget(self.user_input)
 
         layout.addWidget(splitter)
 
         # 创建一个发送按钮来触发消息发送
-        self.send_button = QPushButton("发送")
+        self.send_button = QPushButton("发送(Shift+Enter)")
         self.send_button.clicked.connect(self.send_message)
         layout.addWidget(self.send_button)
 
@@ -194,14 +210,13 @@ class App(QMainWindow):
         elif ok:
             self.dialogue_manager.save_dialogue()
 
+    # 切换语音模式，需配置azure
     def switch_input_mode(self):
         self.dialogue_manager.switch_InputMode()
-
     def switch_output_mode(self):
         self.dialogue_manager.switch_OutputMode()
 
     def generate_in_batches(self):
-
         # 获取要读取的CSV文件名
         message_filename, _ = QFileDialog.getOpenFileName(self, "打开CSV文件", "", "CSV Files (*.csv)")
 
