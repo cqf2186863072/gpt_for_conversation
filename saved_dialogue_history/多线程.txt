@@ -1,0 +1,121 @@
+system: 你是python高手
+user: 你好
+assistant: 你好！有什么Python问题我可以帮您解答吗？
+user: 你会C#语言吗
+assistant: 作为一个AI助手，我对C#语言也有一定了解。请问您有什么关于C#的问题，我可以尽量帮您解答。
+user: '''用于批量向gpt发送请求的脚本
+
+'''
+
+import multiprocessing
+import csv
+import json
+import os
+from gpt_module import GPTClient
+
+# 全局配置
+gpt_client = GPTClient()
+prompt_filename = "小说家"
+
+def process_row(row):
+    keywords = row[1]
+    file_name = os.path.join('saved_dialogue_history', prompt_filename + '.json')
+    with open(file_name, 'r') as file:
+        dialogue_history = json.load(file)
+    dialogue_history.append({"role": "user", "content": f'{keywords}'})
+    response = gpt_client.send_request(dialogue_history)
+    return row[0], keywords, response
+
+def generate_in_batches(message_filename): 
+    # 读取csv文件中的所有行数据
+    with open(message_filename, "r", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    # 创建一个进程池，指定进程数为4（可以根据实际情况调整）
+    pool = multiprocessing.Pool(4)
+
+    # 使用map方法将process_row函数和rows列表分配给不同的进程，并收集返回结果
+    results = pool.map(process_row, rows)
+
+    # 关闭进程池，释放资源
+    pool.close()
+    pool.join()
+
+    # 将结果写到csv文件
+    with open(message_filename, "w", encoding="utf-8", newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(results)
+
+if __name__ == '__main__':
+    message_filename = "./batches/batches.csv"
+    generate_in_batches(message_filename)
+用thread库改写上面的代码
+assistant: 以下是使用`threading`库修改后的代码。这里我使用了`Thread`类和`Queue`类，以便在多个线程之间共享任务和收集结果。
+
+```python
+import threading
+import csv
+import json
+import os
+from gpt_module import GPTClient
+from queue import Queue
+
+# 全局配置
+gpt_client = GPTClient()
+prompt_filename = "小说家"
+num_threads = 4
+
+def process_row(q):
+    while not q.empty():
+        row = q.get()
+        keywords = row[1]
+        file_name = os.path.join('saved_dialogue_history', prompt_filename + '.json')
+        with open(file_name, 'r') as file:
+            dialogue_history = json.load(file)
+        dialogue_history.append({"role": "user", "content": f'{keywords}'})
+        response = gpt_client.send_request(dialogue_history)
+        q.task_done()
+        with lock:
+            results.append((row[0], keywords, response))
+
+def generate_in_batches(message_filename): 
+    # 读取csv文件中的所有行数据
+    with open(message_filename, "r", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    # 创建一个任务队列
+    task_queue = Queue()
+    for row in rows:
+        task_queue.put(row)
+
+    # 创建一个锁对象
+    global lock
+    lock = threading.Lock()
+
+    # 创建一个存储结果的列表
+    global results
+    results = []
+
+    # 创建线程
+    threads = [threading.Thread(target=process_row, args=(task_queue,)) for _ in range(num_threads)]
+
+    # 启动线程
+    for thread in threads:
+        thread.start()
+
+    # 等待所有任务完成
+    task_queue.join()
+
+    # 将结果写到csv文件
+    with open(message_filename, "w", encoding="utf-8", newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(results)
+
+if __name__ == '__main__':
+    message_filename = "./batches/batches.csv"
+    generate_in_batches(message_filename)
+```
+
+这个版本使用了4个线程来处理任务。您可以根据计算机的性能和需求调整`num_threads`变量的值。

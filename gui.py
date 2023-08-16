@@ -1,8 +1,9 @@
 from gpt_module import GPTClient
 from dialogue_module import Message
 from dialogue_module import DialogueManager
+from batches_module import BatchRequestProcessor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTextEdit, QPushButton, QVBoxLayout, QWidget, QFileDialog, QHBoxLayout, QInputDialog, QPlainTextEdit, QSplitter, QDialog, QLabel, QLineEdit, QComboBox
-from PyQt5.QtCore import Qt, QThreadPool, QRunnable, pyqtSlot
+from PyQt5.QtCore import Qt, QThreadPool, QRunnable, pyqtSlot, QThread, pyqtSignal
 import traceback
 import sys
 import os
@@ -30,6 +31,22 @@ class GPTWorker(QRunnable):
         except Exception as e:
             print("Error in GPTWorker:", e)
             traceback.print_exc()
+
+class GPTBatchWorker(QThread):
+    finished = pyqtSignal()
+
+    def __init__(self, batches_generator):
+        super(GPTBatchWorker, self).__init__()
+        self.batches_generator = batches_generator
+
+    def run(self):
+        try:
+            self.batches_generator.generate_in_batches()
+        except Exception as e:
+            print("Error in GPTBatchWorker:", e)
+            traceback.print_exc()
+        finally:
+            self.finished.emit()
 
 class App(QMainWindow):
     def __init__(self, dialogue_manager):
@@ -87,6 +104,11 @@ class App(QMainWindow):
         self.save_dialogue_button = QPushButton("保存对话")
         self.save_dialogue_button.clicked.connect(self.save_dialogue)
         hbox.addWidget(self.save_dialogue_button)
+
+        # 创建批量生成按钮
+        self.generate_in_batches_button = QPushButton("批量生成")
+        self.generate_in_batches_button.clicked.connect(self.generate_in_batches)
+        hbox.addWidget(self.generate_in_batches_button)
 
         # # 创建切换输入模式按钮
         # switch_input_mode_button = QPushButton("切换输入模式")
@@ -177,6 +199,30 @@ class App(QMainWindow):
 
     def switch_output_mode(self):
         self.dialogue_manager.switch_OutputMode()
+
+    def generate_in_batches(self):
+
+        # 获取要读取的CSV文件名
+        message_filename, _ = QFileDialog.getOpenFileName(self, "打开CSV文件", "", "CSV Files (*.csv)")
+
+        # 获取要使用的prompt文件名
+        prompt_filename, ok = QInputDialog.getText(self, "设置Prompt文件", "请输入要使用的Prompt文件名：")
+        
+        self.batches_generator = BatchRequestProcessor(message_filename=message_filename, prompt_filename=prompt_filename)
+        if ok and prompt_filename:
+            # 创建GPTBatchWorker并将其添加到线程池
+            self.batch_worker = GPTBatchWorker(self.batches_generator)
+            self.batch_worker.finished.connect(self.on_batch_finished)
+            self.batch_worker.start()
+
+            # 禁用批量生成按钮
+            self.generate_in_batches_button.setEnabled(False)
+
+    @pyqtSlot()
+    def on_batch_finished(self):
+        # 批量生成结束后，启用批量生成按钮
+        self.generate_in_batches_button.setEnabled(True)
+
 
 if __name__ == "__main__":
     gpt_client = GPTClient()

@@ -1,6 +1,10 @@
-system: 你是编程高手
-user: 请记住下面的代码
-```python
+system: 你是python高手
+user: 你好
+assistant: 你好！有什么Python问题我可以帮您解答吗？
+user: 你会C#语言吗
+assistant: 作为一个AI助手，我对C#语言也有一定了解。请问您有什么关于C#的问题，我可以尽量帮您解答。
+user: 请你记住以下的代码，稍后会用到
+```dialogue.py
 import re
 import os
 import configparser
@@ -258,17 +262,17 @@ if __name__ == '__main__':
     dialogue_manager = DialogueManager(gpt_client)
     dialogue_manager.run()
 ```
-
-assistant: 已经记住了这段代码。这是一个使用Python编写的对话管理器，它可以与GPT-3模型进行交互并支持文本和语音输入输出。代码中包含了一些关键的类和方法，如DialogueManager、Message、set_prompt等。如果您有关于这段代码的任何问题，请随时询问。
-user: 再记住这段代码
-```
+assistant: 好的，我已经记住了这段代码。如果您有关于这段代码的问题，请随时提问。
+user: 再记住下面的代码
+```gui.py
 from gpt_module import GPTClient
 from dialogue_module import Message
 from dialogue_module import DialogueManager
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTextEdit, QLineEdit, QPushButton, QVBoxLayout, QWidget, QFileDialog, QLabel, QHBoxLayout, QRadioButton, QInputDialog, QSizePolicy, QPlainTextEdit, QSplitter
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTextEdit, QPushButton, QVBoxLayout, QWidget, QFileDialog, QHBoxLayout, QInputDialog, QPlainTextEdit, QSplitter, QDialog, QLabel, QLineEdit, QComboBox
 from PyQt5.QtCore import Qt, QThreadPool, QRunnable, pyqtSlot
 import traceback
 import sys
+import os
 
 class GPTWorker(QRunnable):
     def __init__(self, dialogue_manager, user_message):
@@ -296,13 +300,15 @@ class GPTWorker(QRunnable):
 
 class App(QMainWindow):
     def __init__(self, dialogue_manager):
+        # QMetaType.registerMetaType(QTextCursor, "QTextCursor")
+
         super().__init__()
         self.dialogue_manager = dialogue_manager
         self.dialogue_manager.parent = self
         self.init_ui()
 
     def init_ui(self):
-        self.setWindowTitle("AI助手")
+        self.setWindowTitle("GUI")
 
         # 创建一个垂直布局
         layout = QVBoxLayout()
@@ -314,13 +320,10 @@ class App(QMainWindow):
         # 创建一个文本编辑器来显示对话历史
         self.conversation_history = QTextEdit()
         self.conversation_history.setReadOnly(True)
-        # layout.addWidget(self.conversation_history, stretch=3)
         splitter.addWidget(self.conversation_history)
 
         # 创建一个输入框供用户输入文本
         self.user_input = QPlainTextEdit()
-        # self.user_input.setFixedHeight(100)
-        # layout.addWidget(self.user_input)
         splitter.addWidget(self.user_input)
 
         layout.addWidget(splitter)
@@ -369,7 +372,7 @@ class App(QMainWindow):
         if not user_message:
             return
 
-        self.conversation_history.append(f"User: {user_message}")
+        self.conversation_history.append(f"User: {user_message}\n")
         self.user_input.clear()
 
         # 禁用发送和设置Prompt按钮
@@ -383,14 +386,51 @@ class App(QMainWindow):
     @pyqtSlot(str)
     def receive_message(self, assistant_message):
         # GPT请求完成后更新UI
-        self.conversation_history.append(f"Assistant: {assistant_message}")
+        self.conversation_history.append(f"Assistant: {assistant_message}\n")
         self.send_button.setEnabled(True)
         self.set_prompt_button.setEnabled(True)
 
     def set_prompt(self):
-        prompt_text, ok = QInputDialog.getText(self, "设置Prompt", "请输入prompt(system's content)（不需要就Enter）：")
-        if ok:
-            self.dialogue_manager.set_prompt(prompt_text=prompt_text)
+        # 创建一个自定义对话框
+        dialog = QDialog(self)
+        dialog.setWindowTitle("设置Prompt")
+        dialog_layout = QVBoxLayout()
+
+        # 从文本输入
+        text_input_layout = QHBoxLayout()
+        text_input_label = QLabel("文本：")
+        text_input_edit = QPlainTextEdit()
+        text_input_edit.setFixedHeight(50)
+        text_input_confirm_button = QPushButton("确认")
+        text_input_layout.addWidget(text_input_label)
+        text_input_layout.addWidget(text_input_edit)
+        text_input_layout.addWidget(text_input_confirm_button)
+        dialog_layout.addLayout(text_input_layout)
+
+        # 从文件加载
+        file_input_layout = QHBoxLayout()
+        file_input_label = QLabel("文件：")
+        file_input_combo = QComboBox()
+        saved_history_path = os.path.join(os.getcwd(), 'saved_dialogue_history')
+        prompt_files = [f[:-5] for f in os.listdir(saved_history_path) if f.endswith('.json')]
+        file_input_combo.addItems(prompt_files)
+        file_input_confirm_button = QPushButton("确认")
+        file_input_layout.addWidget(file_input_label)
+        file_input_layout.addWidget(file_input_combo)
+        file_input_layout.addWidget(file_input_confirm_button)
+        dialog_layout.addLayout(file_input_layout)
+
+        # 设置对话框布局
+        dialog.setLayout(dialog_layout)
+
+        # 连接信号和槽
+        text_input_confirm_button.clicked.connect(lambda: self.dialogue_manager.set_prompt(prompt_text=text_input_edit.text()))
+        text_input_confirm_button.clicked.connect(dialog.accept)
+        file_input_confirm_button.clicked.connect(lambda: self.dialogue_manager.set_prompt(prompt_file=file_input_combo.currentText()))
+        file_input_confirm_button.clicked.connect(dialog.accept)
+
+        # 显示对话框
+        dialog.exec_()
 
     def save_dialogue(self):
         file_name, ok = QInputDialog.getText(self, "保存对话", "请输入要保存的文件名：")
@@ -414,4 +454,95 @@ if __name__ == "__main__":
     main_window.show()
     sys.exit(app.exec_())
 ```
-assistant: 已经记住了这段代码。这是一个使用Python和PyQt5编写的图形用户界面(GUI)应用程序，它与之前提供的对话管理器一起工作。代码中包含了一些关键的类和方法，如GPTWorker、App等。这个GUI应用程序包括一个文本编辑器用于显示对话历史，一个输入框供用户输入文本，以及一些功能按钮，如设置Prompt、保存对话等。如果您有关于这段代码的任何问题，请随时询问。
+assistant: 好的，我已经记住了这段代码。现在我已经记住了两段代码，分别是`dialogue.py`和`gui.py`。如果您有关于这些代码的问题，请随时提问。
+user: 请你帮我优化下面的代码，并将下面代码实现的功能添加到gui.py中
+```
+'''用于批量向gpt发送请求的脚本
+
+'''
+
+import multiprocessing
+import csv
+import json
+import os
+from gpt_module import GPTClient
+
+# 全局配置
+gpt_client = GPTClient()
+prompt_filename = "小说家"
+
+def process_row(row):
+    keywords = row[1]
+    file_name = os.path.join('saved_dialogue_history', prompt_filename + '.json')
+    with open(file_name, 'r') as file:
+        dialogue_history = json.load(file)
+    dialogue_history.append({"role": "user", "content": f'{keywords}'})
+    response = gpt_client.send_request(dialogue_history)
+    return row[0], keywords, response
+
+def generate_in_batches(message_filename): 
+    # 读取csv文件中的所有行数据
+    with open(message_filename, "r", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    # 创建一个进程池，指定进程数为4（可以根据实际情况调整）
+    pool = multiprocessing.Pool(4)
+
+    # 使用map方法将process_row函数和rows列表分配给不同的进程，并收集返回结果
+    results = pool.map(process_row, rows)
+
+    # 关闭进程池，释放资源
+    pool.close()
+    pool.join()
+
+    # 将结果写到csv文件
+    with open(message_filename, "w", encoding="utf-8", newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(results)
+
+if __name__ == '__main__':
+    message_filename = "./batches/batches.csv"
+    generate_in_batches(message_filename)
+```
+assistant: 首先，我们可以将`generate_in_batches`函数修改为接受一个`prompt_filename`参数，以便在调用该函数时可以自定义提示文件名。然后，我们可以在`gui.py`中添加一个按钮来触发批量生成功能，并将该功能添加到`App`类。以下是修改后的代码：
+
+在`dialogue.py`中，更新`generate_in_batches`函数：
+
+```python
+def generate_in_batches(message_filename, prompt_filename):
+    # 其他代码保持不变
+```
+
+在`gui.py`中，添加批量生成按钮和对应的槽函数：
+
+```python
+class App(QMainWindow):
+    # ...
+
+    def init_feature_buttons(self, layout):
+        # ...
+        
+        # 创建批量生成按钮
+        self.generate_in_batches_button = QPushButton("批量生成")
+        self.generate_in_batches_button.clicked.connect(self.generate_in_batches)
+        hbox.addWidget(self.generate_in_batches_button)
+
+        # ...
+
+    # ...
+
+    def generate_in_batches(self):
+        # 获取要读取的CSV文件名
+        message_filename, _ = QFileDialog.getOpenFileName(self, "打开CSV文件", "", "CSV Files (*.csv)")
+
+        # 获取要使用的提示文件名
+        prompt_filename, ok = QInputDialog.getText(self, "设置Prompt文件", "请输入要使用的Prompt文件名：")
+        if ok and prompt_filename:
+            # 调用generate_in_batches函数
+            generate_in_batches(message_filename, prompt_filename)
+        elif ok:
+            self.generate_in_batches()
+```
+
+这样，您可以在`gui.py`的界面中找到一个名为“批量生成”的按钮，点击该按钮后，您可以选择一个CSV文件，然后输入要使用的提示文件名。当这些信息提供完毕后，程序将开始执行批量生成过程。
