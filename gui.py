@@ -55,8 +55,13 @@ class CustomPlainTextEdit(QPlainTextEdit):
         self.app = app
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Return and event.modifiers() & Qt.ShiftModifier:
-            self.app.send_message()
+        if event.key() == Qt.Key_Return:
+            if event.modifiers() & Qt.ShiftModifier:
+                # Shift+Enter: 插入换行符
+                self.textCursor().insertText('\n')
+            else:
+                # Enter: 发送消息
+                self.app.send_message()
         else:
             super().keyPressEvent(event)
 
@@ -95,7 +100,7 @@ class App(QMainWindow):
         layout.addWidget(splitter)
 
         # 创建一个发送按钮来触发消息发送
-        self.send_button = QPushButton("发送(Shift+Enter)")
+        self.send_button = QPushButton("发送")
         self.send_button.clicked.connect(self.send_message)
         layout.addWidget(self.send_button)
 
